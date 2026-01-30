@@ -1,5 +1,19 @@
 // Mock authentication for development without Supabase
-export const MOCK_USERS = [
+
+export interface MockUser {
+    id: string;
+    email: string;
+    password?: string;
+    full_name: string;
+    role: 'user' | 'author' | 'admin';
+    avatar_url: string | null;
+    bio: string | null;
+    created_at: string;
+    updated_at: string;
+    is_active: boolean;
+}
+
+export const MOCK_USERS: MockUser[] = [
     {
         id: 'user-1',
         email: 'user@demo.com',
@@ -70,7 +84,7 @@ export function mockSignup(email: string, password: string, fullName: string, ro
     }
 
     // Create new mock user
-    const newUser = {
+    const newUser: MockUser = {
         id: `user-${Date.now()}`,
         email,
         password,
