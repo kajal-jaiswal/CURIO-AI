@@ -7,6 +7,8 @@ import { formatDate, generateExcerpt } from '@/lib/utils'
 import { NewsletterBox } from '@/components/NewsletterBox'
 import { FAQ } from '@/components/FAQ'
 
+import { Post, Category } from '@/lib/types'
+
 export const metadata: Metadata = {
   title: 'AI Tools for Jobs & Small Businesses',
   description: 'Discover the best AI tools for jobs and small businesses. Expert reviews, guides, and insights to help you leverage AI for productivity and growth.',
@@ -19,9 +21,9 @@ export const metadata: Metadata = {
 export const revalidate = 3600 // Revalidate every hour
 
 export default async function HomePage() {
-  let featuredPosts = []
-  let categories = []
-  let popularPosts = []
+  let featuredPosts: Post[] = []
+  let categories: Category[] = []
+  let popularPosts: Post[] = []
 
   try {
     const [postsData, categoriesData, popularData] = await Promise.all([
