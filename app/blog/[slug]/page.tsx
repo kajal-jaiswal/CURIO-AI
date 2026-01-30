@@ -57,7 +57,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       type: 'article',
       publishedTime: post.created_at,
       modifiedTime: post.updated_at,
-      authors: [post.author],
+      authors: [post.author || post.author_name || 'Curio AI Bot'],
       images: [
         {
           url: image,
