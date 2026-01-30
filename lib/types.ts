@@ -35,7 +35,8 @@ export interface Post {
   comments_count: number
   is_featured: boolean
   category?: Category
-  author?: UserProfile
+  author?: string // Used for the direct string author name from DB
+  author_profile?: UserProfile // Renamed to avoid confusion with the string field
 }
 
 export interface Category {

@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: BlogPostLayoutProps): Promise
       type: 'article',
       publishedTime: post.created_at,
       modifiedTime: post.updated_at,
-      authors: [post.author],
+      authors: [post.author || post.author_name || 'Curio AI Bot'],
       images: [
         {
           url: image,
@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: BlogPostLayoutProps): Promise
     other: {
       'article:published_time': post.created_at,
       'article:modified_time': post.updated_at,
-      'article:author': post.author,
+      'article:author': post.author || post.author_name || 'Curio AI Bot',
       ...(post.category && { 'article:section': post.category.name }),
       ...(post.tags && { 'article:tag': post.tags.join(', ') }),
     },
