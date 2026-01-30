@@ -22,7 +22,7 @@ export async function GET() {
       <link>${baseUrl}/blog/${post.slug}</link>
       <guid>${baseUrl}/blog/${post.slug}</guid>
       <pubDate>${new Date(post.created_at).toUTCString()}</pubDate>
-      <author>${escapeXml(post.author)}</author>
+      <author>${escapeXml(post.author || post.author_name || 'Curio AI Bot')}</author>
     </item>`
       )
       .join('\n')}

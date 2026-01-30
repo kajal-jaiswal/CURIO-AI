@@ -27,7 +27,7 @@ export async function BlogPostSchema({ params }: BlogPostSchemaProps) {
     dateModified: post.updated_at,
     author: {
       '@type': 'Person',
-      name: post.author,
+      name: post.author || post.author_name || 'Curio AI Bot',
     },
     publisher: {
       '@type': 'Organization',
@@ -61,13 +61,13 @@ export async function BlogPostSchema({ params }: BlogPostSchemaProps) {
       },
       ...(post.category
         ? [
-            {
-              '@type': 'ListItem',
-              position: 3,
-              name: post.category.name,
-              item: `${baseUrl}/category/${post.category.slug}`,
-            },
-          ]
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: post.category.name,
+            item: `${baseUrl}/category/${post.category.slug}`,
+          },
+        ]
         : []),
       {
         '@type': 'ListItem',

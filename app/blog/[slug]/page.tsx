@@ -137,7 +137,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <Eye className="w-4 h-4" />
               <span>{post.views_count} views</span>
             </div>
-            <div className="text-dark-400">By {post.author}</div>
+            <div className="text-dark-400">By {post.author || post.author_name || 'Curio AI Bot'}</div>
           </div>
         </header>
 
