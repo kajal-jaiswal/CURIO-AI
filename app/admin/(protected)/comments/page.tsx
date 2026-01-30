@@ -3,6 +3,8 @@ import { formatDate } from '@/lib/utils'
 import { ApproveCommentButton, DeleteCommentButton } from '@/components/CommentActions'
 import { Comment } from '@/lib/types'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminCommentsPage() {
   const supabase = await createClient()
 

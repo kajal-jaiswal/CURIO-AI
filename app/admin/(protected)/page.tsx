@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { FileText, Eye, MessageSquare, TrendingUp } from 'lucide-react'
 import { getPosts } from '@/lib/queries'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminDashboard() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

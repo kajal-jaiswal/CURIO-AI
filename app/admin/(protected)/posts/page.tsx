@@ -4,6 +4,8 @@ import { getPosts } from '@/lib/queries'
 import { formatDate } from '@/lib/utils'
 import { DeletePostButton } from '@/components/DeletePostButton'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminPostsPage() {
   const posts = await getPosts({ status: undefined, limit: 100 })
 
@@ -49,11 +51,10 @@ export default async function AdminPostsPage() {
                 </td>
                 <td className="px-6 py-4">
                   <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      post.status === 'published'
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${post.status === 'published'
                         ? 'bg-green-900/30 text-green-400'
                         : 'bg-yellow-900/30 text-yellow-400'
-                    }`}
+                      }`}
                   >
                     {post.status}
                   </span>

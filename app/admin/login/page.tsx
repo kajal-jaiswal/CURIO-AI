@@ -6,11 +6,24 @@ import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 export default function AdminLoginPage() {
+  const supabase = createClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+
+  if (!supabase) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-dark-950 p-4">
+        <div className="bg-dark-900 border border-dark-800 rounded-lg p-8 max-w-md text-center">
+          <h1 className="text-2xl font-bold text-red-500 mb-4">Configuration Missing</h1>
+          <p className="text-dark-300">
+            Supabase environment variables are not set. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

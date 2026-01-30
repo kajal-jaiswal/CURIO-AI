@@ -31,13 +31,17 @@ export default async function HomePage() {
       getCategories(),
       getPopularPosts(5),
     ])
-    featuredPosts = postsData
-    categories = categoriesData
-    popularPosts = popularData
+    featuredPosts = postsData || []
+    categories = categoriesData || []
+    popularPosts = popularData || []
   } catch (error) {
     console.error('HomePage fetching error:', error)
-    // Fallback to empty or could import mocks here if needed
   }
+
+  // If even mock data fails or config is missing, ensure we don't crash the render
+  if (!featuredPosts) featuredPosts = []
+  if (!categories) categories = []
+  if (!popularPosts) popularPosts = []
 
   return (
     <>

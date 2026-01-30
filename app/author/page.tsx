@@ -3,6 +3,8 @@ import { BarChart3, FileText, Eye, Heart } from 'lucide-react'
 import Link from 'next/link'
 import { Post } from '@/lib/types'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AuthorDashboard() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
