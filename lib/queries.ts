@@ -1,5 +1,16 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+async function getSupabaseClient() {
+  try {
+    const client = await createServerClient()
+    if (client) return client
+  } catch (error) {
+    // Falls back to public client if cookies() throws during static generation
+  }
+  return createPublicClient()
+}
 import type { Post, Category, Tag, Comment } from '@/lib/types'
 
 import { MOCK_POSTS, MOCK_CATEGORIES, MOCK_TAGS } from './mock-data'
@@ -14,7 +25,8 @@ export async function getPosts(options?: {
   status?: 'draft' | 'published'
 }) {
   try {
-    const supabase = await createClient()
+    const supabase = await getSupabaseClient()
+    if (!supabase) throw new Error('No Supabase client available')
     // Check if we are connected to a real instance (simple check)
     // If URL is placeholder, throw immediately to use mock
     if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) {
@@ -74,7 +86,8 @@ export async function getPosts(options?: {
 
 export async function getPostBySlug(slug: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await getSupabaseClient()
+    if (!supabase) throw new Error('No Supabase client available')
     if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) throw new Error('Using placeholder')
 
     const { data, error } = await supabase
@@ -94,7 +107,8 @@ export async function getPostBySlug(slug: string) {
 
 export async function getCategories() {
   try {
-    const supabase = await createClient()
+    const supabase = await getSupabaseClient()
+    if (!supabase) throw new Error('No Supabase client available')
     if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) throw new Error('Using placeholder')
 
     const { data, error } = await supabase
@@ -126,7 +140,8 @@ export async function getTagBySlug(slug: string) {
 
 export async function getRelatedPosts(postId: string, categoryId: string | null, tags: string[], limit: number = 3) {
   try {
-    const supabase = await createClient()
+    const supabase = await getSupabaseClient()
+    if (!supabase) throw new Error('No Supabase client available')
     if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) throw new Error('Using placeholder')
     // ... existing logic ...
     const { data } = await supabase
@@ -143,7 +158,8 @@ export async function getRelatedPosts(postId: string, categoryId: string | null,
 
 export async function getPopularPosts(limit: number = 5) {
   try {
-    const supabase = await createClient()
+    const supabase = await getSupabaseClient()
+    if (!supabase) throw new Error('No Supabase client available')
     if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) throw new Error('Using placeholder')
 
     const { data, error } = await supabase
@@ -161,7 +177,8 @@ export async function getPopularPosts(limit: number = 5) {
 }
 
 export async function getPostComments(postId: string) {
-  const supabase = await createClient()
+  const supabase = await getSupabaseClient()
+  if (!supabase) return []
   const { data, error } = await supabase
     .from('comments')
     .select('*')
@@ -180,6 +197,7 @@ export async function getPostComments(postId: string) {
 export async function incrementPostViews(postId: string, ipHash: string, userAgent: string | null) {
   try {
     const adminClient = createAdminClient()
+    if (!adminClient) return
 
     // Record page view
     adminClient.from('page_views').insert({
@@ -196,7 +214,8 @@ export async function incrementPostViews(postId: string, ipHash: string, userAge
 }
 
 export async function getAllPostSlugs() {
-  const supabase = await createClient()
+  const supabase = await getSupabaseClient()
+  if (!supabase) return []
   const { data, error } = await supabase
     .from('posts')
     .select('slug')
@@ -206,11 +225,12 @@ export async function getAllPostSlugs() {
     return []
   }
 
-  return (data || []).map((post) => post.slug)
+  return (data || []).map((post: any) => post.slug)
 }
 
 export async function getAllCategorySlugs() {
-  const supabase = await createClient()
+  const supabase = await getSupabaseClient()
+  if (!supabase) return []
   const { data, error } = await supabase
     .from('categories')
     .select('slug')
@@ -219,11 +239,12 @@ export async function getAllCategorySlugs() {
     return []
   }
 
-  return (data || []).map((cat) => cat.slug)
+  return (data || []).map((cat: any) => cat.slug)
 }
 
 export async function getAllTagSlugs() {
-  const supabase = await createClient()
+  const supabase = await getSupabaseClient()
+  if (!supabase) return []
   const { data, error } = await supabase
     .from('tags')
     .select('slug')
@@ -232,5 +253,5 @@ export async function getAllTagSlugs() {
     return []
   }
 
-  return (data || []).map((tag) => tag.slug)
+  return (data || []).map((tag: any) => tag.slug)
 }

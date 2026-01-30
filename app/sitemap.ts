@@ -10,21 +10,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getAllTagSlugs(),
   ])
 
-  const posts = postSlugs.map((slug) => ({
+  const posts = postSlugs.map((slug: string) => ({
     url: `${baseUrl}/blog/${slug}`,
     lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }))
 
-  const categories = categorySlugs.map((slug) => ({
+  const categories = categorySlugs.map((slug: string) => ({
     url: `${baseUrl}/category/${slug}`,
     lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.7,
   }))
 
-  const tags = tagSlugs.map((slug) => ({
+  const tags = tagSlugs.map((slug: string) => ({
     url: `${baseUrl}/tag/${slug}`,
     lastModified: new Date(),
     changeFrequency: 'monthly' as const,

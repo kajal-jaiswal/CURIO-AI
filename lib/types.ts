@@ -65,6 +65,7 @@ export interface Comment {
   status: 'pending' | 'approved' | 'rejected'
   user?: UserProfile
   replies?: Comment[]
+  post?: { title: string; slug: string }
 }
 
 export interface Newsletter {

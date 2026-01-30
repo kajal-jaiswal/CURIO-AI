@@ -5,13 +5,14 @@ import { Providers } from './providers'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://curio-ai.vercel.app'),
   title: {
     default: 'AI Tools for Jobs & Small Businesses | Curio AI Blog',
     template: '%s | Curio AI Blog',

@@ -1,23 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import { BarChart3, FileText, Eye, Heart } from 'lucide-react'
 import Link from 'next/link'
+import { Post } from '@/lib/types'
 
 export default async function AuthorDashboard() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     // Get author's posts
-    const { data: posts } = await supabase
+    const { data: postsData } = await supabase
         .from('posts')
         .select('*')
         .eq('author_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(5)
 
-    const totalPosts = posts?.length || 0
-    const publishedPosts = posts?.filter(p => p.status === 'published').length || 0
-    const totalViews = posts?.reduce((sum, p) => sum + (p.views_count || 0), 0) || 0
-    const totalLikes = posts?.reduce((sum, p) => sum + (p.likes_count || 0), 0) || 0
+    const posts = (postsData || []) as Post[]
+
+    const totalPosts = posts.length
+    const publishedPosts = posts.filter((p: Post) => p.status === 'published').length
+    const totalViews = posts.reduce((sum: number, p: Post) => sum + (p.views_count || 0), 0)
+    const totalLikes = posts.reduce((sum: number, p: Post) => sum + (p.likes_count || 0), 0)
 
     return (
         <div>
@@ -103,8 +106,8 @@ export default async function AuthorDashboard() {
                                     <h3 className="font-semibold text-dark-50 mb-1">{post.title}</h3>
                                     <div className="flex items-center gap-4 text-sm text-dark-400">
                                         <span className={`px-2 py-1 rounded text-xs ${post.status === 'published'
-                                                ? 'bg-green-500/20 text-green-400'
-                                                : 'bg-yellow-500/20 text-yellow-400'
+                                            ? 'bg-green-500/20 text-green-400'
+                                            : 'bg-yellow-500/20 text-yellow-400'
                                             }`}>
                                             {post.status}
                                         </span>

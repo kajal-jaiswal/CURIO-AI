@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatDate } from '@/lib/utils'
 import { ApproveCommentButton, DeleteCommentButton } from '@/components/CommentActions'
+import { Comment } from '@/lib/types'
 
 export default async function AdminCommentsPage() {
   const supabase = await createClient()
 
-  const { data: comments, error } = await supabase
+  const { data: commentsData, error } = await supabase
     .from('comments')
     .select('*, post:posts(title, slug)')
     .order('created_at', { ascending: false })
@@ -14,8 +15,9 @@ export default async function AdminCommentsPage() {
     return <div className="text-red-400">Error loading comments</div>
   }
 
-  const pendingComments = comments?.filter((c) => c.status === 'pending') || []
-  const approvedComments = comments?.filter((c) => c.status === 'approved') || []
+  const comments = (commentsData || []) as Comment[]
+  const pendingComments = comments.filter((c: Comment) => c.status === 'pending')
+  const approvedComments = comments.filter((c: Comment) => c.status === 'approved')
 
   return (
     <div>
