@@ -40,14 +40,51 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 3. Make it **public**
 4. Done!
 
-## Step 6: Create Admin User
+## Step 6: Initialize Authentication Trigger (CRITICAL)
 
-1. Supabase Dashboard → Authentication → Users
-2. Click "Add User" → "Create new user"
-3. Enter email and password
-4. Save credentials!
+1. Supabase Dashboard → SQL Editor
+2. Run this query (or copy content from `supabase/handle_new_user.sql`):
+```sql
+-- Trigger to handle new user creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, email, full_name, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data->>'full_name',
+    COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'user')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-## Step 7: Run Development Server
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+```
+
+## Step 7: Create Your Accounts
+
+Since the database is empty, you need to register!
+
+1. **Create Admin**:
+   - Go to [/signup](http://localhost:3000/signup)
+   - Enter details
+   - **Important**: Select "Author" role first
+   - **Then**: Go to Supabase Table Editor → `user_profiles` and manually change your role to `admin` (For security, you can't signup as admin directly)
+
+2. **Create Author**:
+   - Go to signup again with a different email
+   - Select "Author" role
+   - You now have an author account!
+
+3. **Create Reader**:
+   - Go to signup again
+   - Select "Regular User" role
+
+## Step 8: Run Development Server
 
 ```bash
 npm run dev
@@ -55,11 +92,11 @@ npm run dev
 
 Visit [http://localhost:3000](http://localhost:3000)
 
-## Step 8: Login to Admin
+## Step 9: Login
 
-1. Go to [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
-2. Use the credentials from Step 6
-3. Start creating posts!
+1. Go to [http://localhost:3000/login](http://localhost:3000/login)
+2. Enter your credentials
+3. You'll be redirected to your specific dashboard!
 
 ## 🎉 You're Done!
 

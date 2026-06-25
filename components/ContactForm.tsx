@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Send } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 export function ContactForm() {
@@ -13,7 +12,6 @@ export function ContactForm() {
     message: '',
   })
   const [submitting, setSubmitting] = useState(false)
-  const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

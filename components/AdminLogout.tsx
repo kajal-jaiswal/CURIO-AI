@@ -2,20 +2,19 @@
 
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { signOut } from 'next-auth/react'
 import toast from 'react-hot-toast'
 
 export function AdminLogout() {
   const router = useRouter()
-  const supabase = createClient()
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut()
+      await signOut({ redirect: false })
       toast.success('Logged out successfully')
       router.push('/admin/login')
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Failed to logout')
     }
   }

@@ -2,24 +2,48 @@
   "name": "curio-ai-blog",
   "version": "1.0.0",
   "private": true,
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "setup:admin": "node scripts/create-admin.js"
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:setup": "prisma generate && prisma db push && prisma db seed",
+    "setup:admin": "node scripts/create-admin.js",
+    "test": "node tests/simple-test.js",
+    "test:auth": "node tests/test-auth-flow.js",
+    "test:login": "node tests/test-real-login.js",
+    "test:all": "node tests/test-all.js",
+    "test:check": "node tests/check-requirements.js",
+    "check:env": "node check-env.js",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.2",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.3.4",
+    "@libsql/client": "^0.17.3",
+    "@prisma/adapter-libsql": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "@supabase/ssr": "^0.1.0",
     "@supabase/supabase-js": "^2.39.0",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.0",
     "date-fns": "^3.0.6",
     "dotenv": "^17.2.3",
     "gray-matter": "^4.0.3",
+    "groq-sdk": "^1.2.1",
     "lucide-react": "^0.309.0",
     "next": "14.1.0",
+    "next-auth": "^4.24.14",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.49.3",
@@ -34,7 +58,9 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/typography": "^0.5.10",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.11.5",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
@@ -42,6 +68,7 @@
     "eslint": "^8.56.0",
     "eslint-config-next": "14.1.0",
     "postcss": "^8.4.33",
+    "prisma": "^7.8.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3"
   }

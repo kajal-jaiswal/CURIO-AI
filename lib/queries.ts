@@ -1,19 +1,52 @@
-import { createClient as createServerClient } from '@/lib/supabase/server'
-import { createPublicClient } from '@/lib/supabase/public'
-import { createAdminClient } from '@/lib/supabase/admin'
-
-async function getSupabaseClient() {
-  try {
-    const client = await createServerClient()
-    if (client) return client
-  } catch (error) {
-    // Falls back to public client if cookies() throws during static generation
-  }
-  return createPublicClient()
-}
+import { db } from '@/lib/db'
+import { MOCK_POSTS, MOCK_CATEGORIES, MOCK_TAGS } from './mock-data'
 import type { Post, Category, Tag, Comment } from '@/lib/types'
 
-import { MOCK_POSTS, MOCK_CATEGORIES, MOCK_TAGS } from './mock-data'
+// Convert Prisma post row → TypeScript Post type
+function serializePost(raw: any): Post {
+  let tags: string[] = []
+  try {
+    tags = JSON.parse(raw.tags || '[]')
+  } catch {}
+
+  return {
+    id: raw.id,
+    title: raw.title,
+    slug: raw.slug,
+    excerpt: raw.excerpt,
+    content_md: raw.content_md,
+    cover_image_url: raw.cover_image_url,
+    category_id: raw.category_id,
+    tags,
+    author_id: raw.author_id,
+    author_name: raw.author_name,
+    created_at: raw.created_at instanceof Date ? raw.created_at.toISOString() : raw.created_at,
+    updated_at: raw.updated_at instanceof Date ? raw.updated_at.toISOString() : raw.updated_at,
+    published_at: raw.published_at instanceof Date ? raw.published_at.toISOString() : raw.published_at,
+    meta_title: raw.meta_title,
+    meta_description: raw.meta_description,
+    focus_keyword: raw.focus_keyword,
+    status: raw.status as Post['status'],
+    views_count: raw.views_count,
+    likes_count: raw.likes_count,
+    comments_count: raw.comments_count,
+    is_featured: raw.is_featured,
+    category: raw.category ?? undefined,
+  }
+}
+
+function serializeCategory(raw: any): Category {
+  return {
+    id: raw.id,
+    name: raw.name,
+    slug: raw.slug,
+    description: raw.description,
+  }
+}
+
+function serializeTag(raw: any): Tag {
+  return { id: raw.id, name: raw.name, slug: raw.slug }
+}
 
 export async function getPosts(options?: {
   limit?: number
@@ -22,236 +55,287 @@ export async function getPosts(options?: {
   tag?: string
   search?: string
   sort?: 'latest' | 'popular'
-  status?: 'draft' | 'published'
-}) {
+  status?: 'draft' | 'published' | 'archived'
+}): Promise<Post[]> {
   try {
-    const supabase = await getSupabaseClient()
-    if (!supabase) throw new Error('No Supabase client available')
-    // Check if we are connected to a real instance (simple check)
-    // If URL is placeholder, throw immediately to use mock
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) {
-      throw new Error('Using placeholder')
-    }
+    const where: any = {}
 
-    let query = supabase
-      .from('posts')
-      .select('*, category:categories(*)')
-      .order('created_at', { ascending: false })
-
-    if (options?.status) {
-      query = query.eq('status', options.status)
-    } else {
-      query = query.eq('status', 'published')
+    if (options?.status && options.status !== ('all' as any)) {
+      where.status = options.status
+    } else if (!options?.status) {
+      where.status = 'published'
     }
+    // if status === 'all', no filter — admin use case
 
     if (options?.category) {
-      query = query.eq('category_id', options.category)
+      where.category_id = options.category
     }
 
-    if (options?.sort === 'popular') {
-      query = query.order('views_count', { ascending: false })
+    if (options?.search) {
+      where.OR = [
+        { title: { contains: options.search } },
+        { excerpt: { contains: options.search } },
+      ]
     }
 
-    if (options?.limit) {
-      query = query.limit(options.limit)
+    // SQLite JSON array search: check if tags string contains the tag value
+    if (options?.tag) {
+      where.tags = { contains: options.tag }
     }
 
-    const { data, error } = await query
+    const posts = await db.post.findMany({
+      where,
+      include: { category: true },
+      orderBy: options?.sort === 'popular'
+        ? { views_count: 'desc' }
+        : { created_at: 'desc' },
+      take: options?.limit,
+      skip: options?.offset,
+    })
 
-    if (error) throw error
-    return (data || []) as Post[]
+    return posts.map(serializePost)
   } catch (err) {
-    console.warn('Supabase fetch failed (using mock data):', err)
-    // MOCK DATA FALLBACK
+    console.warn('DB fetch failed, using mock data:', err)
     let posts = [...MOCK_POSTS]
 
-    if (options?.category) {
-      posts = posts.filter(p => p.category_id === options.category)
+    if (options?.status && options.status !== ('all' as any)) {
+      posts = posts.filter(p => p.status === options.status)
+    } else if (!options?.status) {
+      posts = posts.filter(p => p.status === 'published')
+    }
+
+    if (options?.category) posts = posts.filter(p => p.category_id === options.category)
+
+    if (options?.search) {
+      const q = options.search.toLowerCase()
+      posts = posts.filter(p =>
+        p.title.toLowerCase().includes(q) || (p.excerpt || '').toLowerCase().includes(q)
+      )
+    }
+
+    if (options?.tag) {
+      posts = posts.filter(p => Array.isArray(p.tags) && p.tags.includes(options.tag!))
     }
 
     if (options?.sort === 'popular') {
       posts.sort((a, b) => b.views_count - a.views_count)
     } else {
-      // Latest
       posts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     }
 
-    if (options?.limit) {
-      posts = posts.slice(0, options.limit)
-    }
+    if (options?.offset) posts = posts.slice(options.offset)
+    if (options?.limit) posts = posts.slice(0, options.limit)
 
     return posts
   }
 }
 
-export async function getPostBySlug(slug: string) {
+export async function getPostBySlug(slug: string): Promise<Post | null> {
   try {
-    const supabase = await getSupabaseClient()
-    if (!supabase) throw new Error('No Supabase client available')
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) throw new Error('Using placeholder')
-
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*, category:categories(*)')
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .single()
-
-    if (error || !data) throw error
-    return data as Post
-  } catch (err) {
-    const post = MOCK_POSTS.find(p => p.slug === slug)
-    return post || null
+    const post = await db.post.findFirst({
+      where: { slug, status: 'published' },
+      include: { category: true },
+    })
+    return post ? serializePost(post) : null
+  } catch {
+    return MOCK_POSTS.find(p => p.slug === slug) || null
   }
 }
 
-export async function getCategories() {
+export async function getPostById(id: string): Promise<Post | null> {
   try {
-    const supabase = await getSupabaseClient()
-    if (!supabase) throw new Error('No Supabase client available')
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) throw new Error('Using placeholder')
+    const post = await db.post.findUnique({
+      where: { id },
+      include: { category: true },
+    })
+    return post ? serializePost(post) : null
+  } catch {
+    return MOCK_POSTS.find(p => p.id === id) || null
+  }
+}
 
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('name')
-
-    if (error) throw error
-    return (data || []) as Category[]
-  } catch (err) {
+export async function getCategories(): Promise<Category[]> {
+  try {
+    const cats = await db.category.findMany({ orderBy: { name: 'asc' } })
+    return cats.map(serializeCategory)
+  } catch {
     return MOCK_CATEGORIES
   }
 }
 
-export async function getCategoryBySlug(slug: string) {
-  // Basic implementation for slug
-  // ...
-  const cat = MOCK_CATEGORIES.find(c => c.slug === slug)
-  return cat || null
-}
-
-export async function getTags() {
-  return MOCK_TAGS
-}
-
-export async function getTagBySlug(slug: string) {
-  return MOCK_TAGS.find(t => t.slug === slug) || null
-}
-
-export async function getRelatedPosts(postId: string, categoryId: string | null, tags: string[], limit: number = 3) {
+export async function getCategoryBySlug(slug: string): Promise<Category | null> {
   try {
-    const supabase = await getSupabaseClient()
-    if (!supabase) throw new Error('No Supabase client available')
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) throw new Error('Using placeholder')
-    // ... existing logic ...
-    const { data } = await supabase
-      .from('posts')
-      .select('*, category:categories(*)')
-      .neq('id', postId)
-      .limit(limit)
+    const cat = await db.category.findUnique({ where: { slug } })
+    return cat ? serializeCategory(cat) : null
+  } catch {
+    return MOCK_CATEGORIES.find(c => c.slug === slug) || null
+  }
+}
 
-    return (data || []) as Post[]
-  } catch (err) {
+export async function getTags(): Promise<Tag[]> {
+  try {
+    const tags = await db.tag.findMany({ orderBy: { name: 'asc' } })
+    return tags.map(serializeTag)
+  } catch {
+    return MOCK_TAGS
+  }
+}
+
+export async function getTagBySlug(slug: string): Promise<Tag | null> {
+  try {
+    const tag = await db.tag.findUnique({ where: { slug } })
+    return tag ? serializeTag(tag) : null
+  } catch {
+    return MOCK_TAGS.find(t => t.slug === slug) || null
+  }
+}
+
+export async function getRelatedPosts(
+  postId: string,
+  categoryId: string | null,
+  _tags: string[],
+  limit: number = 3
+): Promise<Post[]> {
+  try {
+    const posts = await db.post.findMany({
+      where: {
+        status: 'published',
+        id: { not: postId },
+        ...(categoryId ? { category_id: categoryId } : {}),
+      },
+      include: { category: true },
+      take: limit,
+    })
+    return posts.map(serializePost)
+  } catch {
     return MOCK_POSTS.filter(p => p.id !== postId).slice(0, limit)
   }
 }
 
-export async function getPopularPosts(limit: number = 5) {
+export async function getPopularPosts(limit: number = 5): Promise<Post[]> {
   try {
-    const supabase = await getSupabaseClient()
-    if (!supabase) throw new Error('No Supabase client available')
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) throw new Error('Using placeholder')
-
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*, category:categories(*)')
-      .eq('status', 'published')
-      .order('views_count', { ascending: false })
-      .limit(limit)
-
-    if (error) throw error
-    return data as Post[]
-  } catch (err) {
+    const posts = await db.post.findMany({
+      where: { status: 'published' },
+      include: { category: true },
+      orderBy: { views_count: 'desc' },
+      take: limit,
+    })
+    return posts.map(serializePost)
+  } catch {
     return [...MOCK_POSTS].sort((a, b) => b.views_count - a.views_count).slice(0, limit)
   }
 }
 
-export async function getPostComments(postId: string) {
-  const supabase = await getSupabaseClient()
-  if (!supabase) return []
-  const { data, error } = await supabase
-    .from('comments')
-    .select('*')
-    .eq('post_id', postId)
-    .eq('status', 'approved')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('Error fetching comments:', error)
-    return []
-  }
-
-  return (data || []) as Comment[]
-}
-
-export async function incrementPostViews(postId: string, ipHash: string, userAgent: string | null) {
+export async function getPostComments(postId: string): Promise<Comment[]> {
   try {
-    const adminClient = createAdminClient()
-    if (!adminClient) return
-
-    // Record page view
-    adminClient.from('page_views').insert({
-      post_id: postId,
-      ip_hash: ipHash,
-      user_agent: userAgent,
-    }).then(() => { })
-
-    // Increment views count
-    adminClient.rpc('increment_post_views', { post_id: postId }).then(() => { })
-  } catch (error) {
-    // Silently fail - don't block page rendering
+    const comments = await db.comment.findMany({
+      where: { post_id: postId, status: 'approved' },
+      orderBy: { created_at: 'desc' },
+    })
+    return comments.map(c => ({
+      id: c.id,
+      post_id: c.post_id,
+      user_id: c.user_id,
+      parent_id: c.parent_id,
+      name: c.name,
+      email: c.email,
+      message: c.message,
+      created_at: c.created_at instanceof Date ? c.created_at.toISOString() : c.created_at,
+      updated_at: c.updated_at instanceof Date ? c.updated_at.toISOString() : c.updated_at,
+      status: c.status as Comment['status'],
+    }))
+  } catch {
+    return []
   }
 }
 
-export async function getAllPostSlugs() {
-  const supabase = await getSupabaseClient()
-  if (!supabase) return []
-  const { data, error } = await supabase
-    .from('posts')
-    .select('slug')
-    .eq('status', 'published')
-
-  if (error) {
-    return []
-  }
-
-  return (data || []).map((post: any) => post.slug)
+export async function incrementPostViews(
+  postId: string,
+  ipHash: string,
+  userAgent: string | null
+) {
+  // Non-blocking — runs in background
+  ;(async () => {
+    try {
+      await db.pageView.create({
+        data: { post_id: postId, ip_hash: ipHash, user_agent: userAgent },
+      })
+      await db.post.update({
+        where: { id: postId },
+        data: { views_count: { increment: 1 } },
+      })
+    } catch {
+      // Silently swallow — analytics must not affect page rendering
+    }
+  })()
 }
 
-export async function getAllCategorySlugs() {
-  const supabase = await getSupabaseClient()
-  if (!supabase) return []
-  const { data, error } = await supabase
-    .from('categories')
-    .select('slug')
-
-  if (error) {
+export async function getAllPostSlugs(): Promise<string[]> {
+  try {
+    const posts = await db.post.findMany({
+      where: { status: 'published' },
+      select: { slug: true },
+    })
+    return posts.map(p => p.slug)
+  } catch {
     return []
   }
-
-  return (data || []).map((cat: any) => cat.slug)
 }
 
-export async function getAllTagSlugs() {
-  const supabase = await getSupabaseClient()
-  if (!supabase) return []
-  const { data, error } = await supabase
-    .from('tags')
-    .select('slug')
-
-  if (error) {
+export async function getAllCategorySlugs(): Promise<string[]> {
+  try {
+    const cats = await db.category.findMany({ select: { slug: true } })
+    return cats.map(c => c.slug)
+  } catch {
     return []
   }
+}
 
-  return (data || []).map((tag: any) => tag.slug)
+export async function getAllTagSlugs(): Promise<string[]> {
+  try {
+    const tags = await db.tag.findMany({ select: { slug: true } })
+    return tags.map(t => t.slug)
+  } catch {
+    return []
+  }
+}
+
+const STOPWORDS = new Set([
+  'the','a','an','and','or','for','in','on','at','to','of','is','are',
+  'was','how','why','what','when','will','with','that','this','from',
+  'about','new','top','best','using','use','your','our','its','has',
+  'into','can','more','most','some','been','have','had','not','than',
+])
+
+function topicKeywords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !STOPWORDS.has(w))
+}
+
+// Returns true if a post covering a very similar topic already exists in the DB.
+// Matches when 2+ significant keywords overlap with an existing post title.
+export async function isTopicDuplicate(topic: string): Promise<boolean> {
+  try {
+    const keywords = topicKeywords(topic)
+    if (keywords.length === 0) return false
+
+    const posts = await db.post.findMany({ select: { title: true } })
+
+    for (const post of posts) {
+      const postKeywords = topicKeywords(post.title)
+      let matches = 0
+      for (const kw of keywords) {
+        if (postKeywords.some(pk => pk === kw || pk.startsWith(kw) || kw.startsWith(pk))) {
+          matches++
+          if (matches >= 2) return true
+        }
+      }
+    }
+    return false
+  } catch {
+    return false
+  }
 }

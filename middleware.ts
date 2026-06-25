@@ -1,61 +1,45 @@
-import { createServerClient } from '@supabase/ssr'
+import { getToken } from 'next-auth/jwt'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
   })
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const { pathname } = request.nextUrl
 
-  if (!url || !key) {
-    return response
+  if (!token) {
+    const loginUrl = new URL('/login', request.url)
+    if (pathname.startsWith('/admin')) {
+      loginUrl.pathname = '/admin/login'
+    }
+    return NextResponse.redirect(loginUrl)
   }
 
-  const supabase = createServerClient(
-    url,
-    key,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value)
-          )
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  // Protect admin routes
-  if (request.nextUrl.pathname.startsWith('/admin') && !request.nextUrl.pathname.startsWith('/admin/login')) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.redirect(new URL('/admin/login', request.url))
-    }
+  if (pathname.startsWith('/admin') && token.role !== 'admin') {
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
-  return response
+  if (
+    pathname.startsWith('/author') &&
+    token.role !== 'author' &&
+    token.role !== 'admin'
+  ) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  if (
+    pathname.startsWith('/moderator') &&
+    token.role !== 'moderator' &&
+    token.role !== 'admin'
+  ) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: [
-    '/admin/:path*',
-  ],
+  matcher: ['/admin/:path*', '/author/:path*', '/moderator/:path*', '/profile/:path*', '/bookmarks/:path*'],
 }

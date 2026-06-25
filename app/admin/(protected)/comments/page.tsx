@@ -1,25 +1,25 @@
-import { createClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 import { ApproveCommentButton, DeleteCommentButton } from '@/components/CommentActions'
-import { Comment } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminCommentsPage() {
-  const supabase = await createClient()
+  const commentsRaw = await db.comment.findMany({
+    orderBy: { created_at: 'desc' },
+    include: {
+      post: { select: { title: true, slug: true } },
+    },
+  })
 
-  const { data: commentsData, error } = await supabase
-    .from('comments')
-    .select('*, post:posts(title, slug)')
-    .order('created_at', { ascending: false })
+  const comments = commentsRaw.map(c => ({
+    ...c,
+    created_at: c.created_at.toISOString(),
+    updated_at: c.updated_at.toISOString(),
+  }))
 
-  if (error) {
-    return <div className="text-red-400">Error loading comments</div>
-  }
-
-  const comments = (commentsData || []) as Comment[]
-  const pendingComments = comments.filter((c: Comment) => c.status === 'pending')
-  const approvedComments = comments.filter((c: Comment) => c.status === 'approved')
+  const pendingComments = comments.filter(c => c.status === 'pending')
+  const approvedComments = comments.filter(c => c.status === 'approved')
 
   return (
     <div>
@@ -28,9 +28,7 @@ export default async function AdminCommentsPage() {
       <div className="space-y-8">
         {pendingComments.length > 0 && (
           <div>
-            <h2 className="text-xl font-semibold text-dark-50 mb-4">
-              Pending ({pendingComments.length})
-            </h2>
+            <h2 className="text-xl font-semibold text-dark-50 mb-4">Pending ({pendingComments.length})</h2>
             <div className="bg-dark-900 border border-dark-800 rounded-lg overflow-hidden">
               <div className="divide-y divide-dark-800">
                 {pendingComments.map((comment) => (
@@ -41,10 +39,7 @@ export default async function AdminCommentsPage() {
                           <span className="font-semibold text-dark-50">{comment.name}</span>
                           <span className="text-sm text-dark-400">{comment.email}</span>
                         </div>
-                        <a
-                          href={`/blog/${comment.post?.slug}`}
-                          className="text-sm text-primary-400 hover:text-primary-300"
-                        >
+                        <a href={`/blog/${comment.post?.slug}`} className="text-sm text-primary-400 hover:text-primary-300">
                           {comment.post?.title}
                         </a>
                       </div>
@@ -63,9 +58,7 @@ export default async function AdminCommentsPage() {
         )}
 
         <div>
-          <h2 className="text-xl font-semibold text-dark-50 mb-4">
-            Approved ({approvedComments.length})
-          </h2>
+          <h2 className="text-xl font-semibold text-dark-50 mb-4">Approved ({approvedComments.length})</h2>
           <div className="bg-dark-900 border border-dark-800 rounded-lg overflow-hidden">
             <div className="divide-y divide-dark-800">
               {approvedComments.length === 0 ? (
@@ -79,10 +72,7 @@ export default async function AdminCommentsPage() {
                           <span className="font-semibold text-dark-50">{comment.name}</span>
                           <span className="text-sm text-dark-400">{comment.email}</span>
                         </div>
-                        <a
-                          href={`/blog/${comment.post?.slug}`}
-                          className="text-sm text-primary-400 hover:text-primary-300"
-                        >
+                        <a href={`/blog/${comment.post?.slug}`} className="text-sm text-primary-400 hover:text-primary-300">
                           {comment.post?.title}
                         </a>
                       </div>

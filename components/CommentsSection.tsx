@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { MessageSquare, Send } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
+import { submitComment } from '@/app/actions/comments'
 import type { Comment } from '@/lib/types'
 import toast from 'react-hot-toast'
 
@@ -15,34 +15,15 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: '',
-  })
-  const supabase = createClient()
+  const [formData, setFormData] = useState({ name: '', email: '', message: '' })
 
   useEffect(() => {
-    loadComments()
+    fetch(`/api/comments?postId=${postId}`)
+      .then(r => r.json())
+      .then(data => setComments(data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [postId])
-
-  const loadComments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*')
-        .eq('post_id', postId)
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setComments(data || [])
-    } catch (error) {
-      console.error('Error loading comments:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,19 +34,14 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
 
     setSubmitting(true)
     try {
-      const { error } = await supabase.from('comments').insert({
-        post_id: postId,
-        name: formData.name,
-        email: formData.email,
-        message: formData.message,
-        status: 'pending',
-      })
-
-      if (error) throw error
-
+      const result = await submitComment({ postId, ...formData })
+      if (!result.success) {
+        toast.error(result.error || 'Failed to submit comment')
+        return
+      }
       toast.success('Comment submitted! It will be reviewed before publishing.')
       setFormData({ name: '', email: '', message: '' })
-    } catch (error) {
+    } catch {
       toast.error('Failed to submit comment. Please try again.')
     } finally {
       setSubmitting(false)
@@ -76,9 +52,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
     <div className="mt-12 pt-8 border-t border-dark-800">
       <div className="flex items-center gap-2 mb-6">
         <MessageSquare className="w-5 h-5 text-primary-400" />
-        <h3 className="text-2xl font-bold text-dark-50">
-          Comments ({comments.length})
-        </h3>
+        <h3 className="text-2xl font-bold text-dark-50">Comments ({comments.length})</h3>
       </div>
 
       <form onSubmit={handleSubmit} className="mb-8 space-y-4">

@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 import { getCategories, getTags } from '@/lib/queries'
 import { PostEditor } from '@/components/PostEditor'
 
@@ -10,23 +10,23 @@ interface AdminPostPageProps {
 }
 
 async function getPost(id: string) {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*, category:categories(*)')
-    .eq('id', id)
-    .single()
+  const raw = await db.post.findUnique({ where: { id } })
+  if (!raw) return null
 
-  if (error || !data) {
-    return null
+  return {
+    ...raw,
+    tags: JSON.parse(raw.tags || '[]'),
+    created_at: raw.created_at.toISOString(),
+    updated_at: raw.updated_at.toISOString(),
+    published_at: raw.published_at?.toISOString() ?? null,
   }
-
-  return data
 }
+
+export const dynamic = 'force-dynamic'
 
 export default async function AdminPostPage({ params }: AdminPostPageProps) {
   const post = params.id === 'new' ? null : await getPost(params.id)
-  
+
   if (params.id !== 'new' && !post) {
     notFound()
   }
@@ -41,7 +41,7 @@ export default async function AdminPostPage({ params }: AdminPostPageProps) {
       <h1 className="text-3xl font-bold text-dark-50 mb-8">
         {post ? 'Edit Post' : 'New Post'}
       </h1>
-      <PostEditor post={post} categories={categories} tags={tags} />
+      <PostEditor post={post as any} categories={categories} tags={tags} />
     </div>
   )
 }

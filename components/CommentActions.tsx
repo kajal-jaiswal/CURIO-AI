@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { approveComment, deleteComment } from '@/app/actions/comments'
 import toast from 'react-hot-toast'
 
 interface CommentActionProps {
@@ -17,17 +17,10 @@ export function ApproveCommentButton({ commentId }: CommentActionProps) {
   const handleApprove = async () => {
     setLoading(true)
     try {
-      const supabase = createAdminClient()
-      const { error } = await supabase
-        .from('comments')
-        .update({ status: 'approved' })
-        .eq('id', commentId)
-
-      if (error) throw error
-
+      await approveComment(commentId)
       toast.success('Comment approved')
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Failed to approve comment')
     } finally {
       setLoading(false)
@@ -51,20 +44,14 @@ export function DeleteCommentButton({ commentId }: CommentActionProps) {
   const router = useRouter()
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this comment?')) {
-      return
-    }
+    if (!confirm('Are you sure you want to delete this comment?')) return
 
     setLoading(true)
     try {
-      const supabase = createAdminClient()
-      const { error } = await supabase.from('comments').delete().eq('id', commentId)
-
-      if (error) throw error
-
+      await deleteComment(commentId)
       toast.success('Comment deleted')
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete comment')
     } finally {
       setLoading(false)

@@ -41,10 +41,10 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-dark-50 mb-4">All Articles</h1>
-        <p className="text-dark-300 text-lg">
-          Discover expert insights on AI tools for jobs and small businesses.
+      <div className="mb-10 pb-8 border-b border-dark-800">
+        <h1 className="text-3xl md:text-4xl font-bold text-dark-50 mb-3">All Articles</h1>
+        <p className="text-dark-400">
+          Expert insights on AI tools, productivity, and growth for small businesses.
         </p>
       </div>
 

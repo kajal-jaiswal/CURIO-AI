@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { LogOut, Home, FileText, MessageSquare, BarChart3 } from 'lucide-react'
+import { LogOut, Home, FileText, MessageSquare, BarChart3, Users, Megaphone, TrendingUp, Bot } from 'lucide-react'
 import { AdminLogout } from './AdminLogout'
 
 export function AdminNav() {
@@ -27,11 +27,39 @@ export function AdminNav() {
                 Posts
               </Link>
               <Link
+                href="/admin/users"
+                className="flex items-center gap-2 text-sm text-dark-300 hover:text-primary-400 transition-colors"
+              >
+                <Users className="w-4 h-4" />
+                Users
+              </Link>
+              <Link
                 href="/admin/comments"
                 className="flex items-center gap-2 text-sm text-dark-300 hover:text-primary-400 transition-colors"
               >
                 <MessageSquare className="w-4 h-4" />
                 Comments
+              </Link>
+              <Link
+                href="/admin/ads"
+                className="flex items-center gap-2 text-sm text-dark-300 hover:text-primary-400 transition-colors"
+              >
+                <Megaphone className="w-4 h-4" />
+                Ads
+              </Link>
+              <Link
+                href="/admin/analytics"
+                className="flex items-center gap-2 text-sm text-dark-300 hover:text-primary-400 transition-colors"
+              >
+                <TrendingUp className="w-4 h-4" />
+                Analytics
+              </Link>
+              <Link
+                href="/admin/automation"
+                className="flex items-center gap-2 text-sm text-dark-300 hover:text-primary-400 transition-colors"
+              >
+                <Bot className="w-4 h-4" />
+                Automation
               </Link>
             </div>
           </div>

@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://yourdomain.com',
+    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://curio-ai.vercel.app',
     siteName: 'Curio AI Blog',
     title: 'AI Tools for Jobs & Small Businesses',
     description: 'Discover the best AI tools for jobs and small businesses.',
@@ -54,9 +54,9 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  verification: {
-    google: 'your-google-verification-code',
-  },
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } }
+    : {}),
 }
 
 export default function RootLayout({

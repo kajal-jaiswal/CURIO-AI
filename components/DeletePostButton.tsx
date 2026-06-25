@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { deletePost } from '@/app/actions/posts'
 import toast from 'react-hot-toast'
 
 interface DeletePostButtonProps {
@@ -16,21 +16,15 @@ export function DeletePostButton({ postId, postTitle }: DeletePostButtonProps) {
   const router = useRouter()
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete "${postTitle}"? This action cannot be undone.`)) {
-      return
-    }
+    if (!confirm(`Are you sure you want to delete "${postTitle}"? This action cannot be undone.`)) return
 
     setLoading(true)
     try {
-      const supabase = createAdminClient()
-      const { error } = await supabase.from('posts').delete().eq('id', postId)
-
-      if (error) throw error
-
+      await deletePost(postId)
       toast.success('Post deleted successfully')
       router.refresh()
-    } catch (error) {
-      toast.error('Failed to delete post')
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete post')
     } finally {
       setLoading(false)
     }

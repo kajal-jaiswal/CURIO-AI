@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String
+  full_name     String?
+  role          String   @default("user")
+  avatar_url    String?
+  bio           String?
+  is_active           Boolean   @default(true)
+  reset_token         String?
+  reset_token_expires DateTime?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  posts      Post[]
+  comments   Comment[]
+  page_views PageView[]
+  post_likes PostLike[]
+  bookmarks  Bookmark[]
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+
+  posts Post[]
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+}
+
+model Post {
+  id               String    @id @default(cuid())
+  title            String
+  slug             String    @unique
+  excerpt          String    @default("")
+  content_md       String    @default("")
+  cover_image_url  String?
+  category_id      String?
+  tags             String    @default("[]")
+  author_id        String?
+  author_name      String    @default("Curio AI Bot")
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  published_at     DateTime?
+  meta_title       String?
+  meta_description String?
+  focus_keyword    String?
+  status           String    @default("draft")
+  views_count      Int       @default(0)
+  likes_count      Int       @default(0)
+  comments_count   Int       @default(0)
+  is_featured      Boolean   @default(false)
+
+  category   Category?  @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  author     User?      @relation(fields: [author_id], references: [id], onDelete: SetNull)
+  comments   Comment[]
+  page_views PageView[]
+  post_likes PostLike[]
+  bookmarks  Bookmark[]
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  post_id    String
+  user_id    String?
+  parent_id  String?
+  name       String
+  email      String
+  message    String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  status     String   @default("pending")
+
+  post    Post      @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user    User?     @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  parent  Comment?  @relation("CommentReplies", fields: [parent_id], references: [id])
+  replies Comment[] @relation("CommentReplies")
+}
+
+model Newsletter {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  created_at DateTime @default(now())
+  is_active  Boolean  @default(true)
+}
+
+model PageView {
+  id         String   @id @default(cuid())
+  post_id    String
+  user_id    String?
+  ip_hash    String
+  user_agent String?
+  referrer   String?
+  created_at DateTime @default(now())
+
+  post Post  @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+}
+
+model PostLike {
+  id         String   @id @default(cuid())
+  post_id    String
+  user_id    String
+  created_at DateTime @default(now())
+
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([post_id, user_id])
+}
+
+model Bookmark {
+  id         String   @id @default(cuid())
+  post_id    String
+  user_id    String
+  created_at DateTime @default(now())
+
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([post_id, user_id])
+}
+
+model Advertisement {
+  id                String    @id @default(cuid())
+  title             String
+  description       String?
+  image_url         String?
+  link_url          String
+  position          String    @default("sidebar")
+  is_active         Boolean   @default(true)
+  impressions_count Int       @default(0)
+  clicks_count      Int       @default(0)
+  start_date        DateTime?
+  end_date          DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+}

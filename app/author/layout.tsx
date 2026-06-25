@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,35 +9,13 @@ export default async function AuthorLayout({
 }: {
     children: React.ReactNode
 }) {
-    const supabase = await createClient()
+    const session = await getServerSession(authOptions)
 
-    if (!supabase) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-dark-950 p-4">
-                <div className="bg-dark-900 border border-dark-800 rounded-lg p-8 max-w-md text-center">
-                    <h1 className="text-2xl font-bold text-red-500 mb-4">Configuration Missing</h1>
-                    <p className="text-dark-300">
-                        Supabase environment variables are not set. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment.
-                    </p>
-                </div>
-            </div>
-        )
-    }
-
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
+    if (!session?.user) {
         redirect('/login')
     }
 
-    // Check if user has author or admin role
-    const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || (profile.role !== 'author' && profile.role !== 'admin')) {
+    if (session.user.role !== 'author' && session.user.role !== 'admin') {
         redirect('/')
     }
 
@@ -50,31 +29,19 @@ export default async function AuthorLayout({
                                 ✍️ Author Dashboard
                             </a>
                             <div className="flex items-center space-x-4">
-                                <a href="/author" className="text-sm text-dark-300 hover:text-primary-400 transition-colors">
-                                    Overview
-                                </a>
-                                <a href="/author/posts" className="text-sm text-dark-300 hover:text-primary-400 transition-colors">
-                                    My Posts
-                                </a>
-                                <a href="/author/analytics" className="text-sm text-dark-300 hover:text-primary-400 transition-colors">
-                                    Analytics
-                                </a>
+                                <a href="/author" className="text-sm text-dark-300 hover:text-primary-400 transition-colors">Overview</a>
+                                <a href="/author/posts" className="text-sm text-dark-300 hover:text-primary-400 transition-colors">My Posts</a>
+                                <a href="/author/analytics" className="text-sm text-dark-300 hover:text-primary-400 transition-colors">Analytics</a>
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <a href="/" className="text-sm text-dark-400 hover:text-dark-300">
-                                ← Back to Blog
-                            </a>
-                            <a href="/profile" className="text-sm text-dark-300 hover:text-primary-400">
-                                Profile
-                            </a>
+                            <a href="/" className="text-sm text-dark-400 hover:text-dark-300">← Back to Blog</a>
+                            <a href="/profile" className="text-sm text-dark-300 hover:text-primary-400">Profile</a>
                         </div>
                     </div>
                 </div>
             </nav>
-            <main className="container mx-auto px-4 py-8">
-                {children}
-            </main>
+            <main className="container mx-auto px-4 py-8">{children}</main>
         </div>
     )
 }

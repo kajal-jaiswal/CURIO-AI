@@ -12,6 +12,14 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'plus.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.unsplash.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'image.pollinations.ai',
       },
     ],

@@ -1,101 +1,94 @@
 import Link from 'next/link'
-import { Search, Menu, X } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { HeaderNav } from './HeaderNav'
 import { SearchBar } from './SearchBar'
 
 export async function Header() {
-  let user = null
-  let userProfile = null
-
+  let session = null
   try {
-    const supabase = await createClient()
-    const { data } = await supabase.auth.getUser()
-    user = data.user
+    session = await getServerSession(authOptions)
+  } catch {}
 
-    if (user) {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('role, full_name')
-        .eq('id', user.id)
-        .single()
-      userProfile = profile
-    }
-  } catch (error) {
-    // Ignore error, treat as logged out
-  }
+  const user = session?.user
+  const initial = user ? (user.name || user.email || 'U')[0].toUpperCase() : ''
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-dark-800 bg-dark-950/95 backdrop-blur supports-[backdrop-filter]:bg-dark-950/60">
+    <header className="sticky top-0 z-50 w-full border-b border-dark-800 bg-dark-950/95 backdrop-blur supports-[backdrop-filter]:bg-dark-950/80">
       <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
+        <div className="flex h-16 items-center justify-between gap-4">
+
+          {/* Logo */}
+          <Link href="/" className="flex-shrink-0 flex items-center space-x-2">
+            <span className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-500 bg-clip-text text-transparent">
               Curio AI
             </span>
           </Link>
 
+          {/* Nav */}
           <nav className="hidden md:flex items-center space-x-6">
             <HeaderNav />
           </nav>
 
-          <div className="flex items-center space-x-4">
+          {/* Right side */}
+          <div className="flex items-center gap-3">
             <SearchBar />
 
-            {user && userProfile ? (
-              <>
-                {/* Dashboard Link based on role */}
-                {userProfile.role === 'admin' && (
+            {user ? (
+              <div className="flex items-center gap-2">
+                {user.role === 'admin' && (
                   <Link
                     href="/admin"
-                    className="text-sm text-dark-300 hover:text-primary-400 transition-colors"
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold transition-colors"
                   >
-                    👑 Admin
+                    <span>👑</span> Admin
                   </Link>
                 )}
-                {userProfile.role === 'author' && (
+                {user.role === 'author' && (
                   <Link
                     href="/author"
-                    className="text-sm text-dark-300 hover:text-primary-400 transition-colors"
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 rounded-lg text-xs font-semibold transition-colors"
                   >
-                    ✍️ Dashboard
+                    <span>✍️</span> Dashboard
                   </Link>
                 )}
-
-                {/* User Menu */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-dark-400">
-                    {userProfile.full_name || user.email}
-                  </span>
-                  <Link
-                    href="/profile"
-                    className="px-3 py-1.5 bg-dark-800 hover:bg-dark-700 text-dark-50 rounded-lg transition-colors text-sm"
-                  >
-                    Profile
-                  </Link>
-                </div>
-              </>
+                <Link
+                  href="/bookmarks"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-dark-800 hover:bg-dark-700 text-dark-300 hover:text-dark-50 rounded-lg text-xs font-medium transition-colors"
+                  title="Your bookmarks"
+                >
+                  <span>🔖</span> Saved
+                </Link>
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                  title={user.name || user.email || 'Profile'}
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-sm font-bold shadow">
+                    {initial}
+                  </div>
+                </Link>
+              </div>
             ) : (
-              <>
-                {/* Login/Signup Buttons */}
+              <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="px-4 py-2 text-dark-300 hover:text-primary-400 transition-colors text-sm font-medium"
+                  className="px-3 py-1.5 text-dark-300 hover:text-primary-400 transition-colors text-sm font-medium"
                 >
                   Login
                 </Link>
                 <Link
                   href="/signup"
-                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  className="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   Sign Up
                 </Link>
-              </>
+              </div>
             )}
 
             <Link
               href="/blog"
-              className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm font-medium"
+              className="hidden sm:inline-flex px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm font-medium"
             >
               Browse Blog
             </Link>

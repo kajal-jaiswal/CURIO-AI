@@ -1,15 +1,24 @@
 # ✅ Authentication System - COMPLETE!
 
+## 🚨 CRITICAL: One-Time Database Setup
+
+To make the signup work, you **MUST** run the SQL trigger I created. This ensures `user_profiles` are created when users sign up.
+
+1. Go to your Supabase Dashboard -> SQL Editor.
+2. Copy the content of `supabase/handle_new_user.sql`.
+3. Run the query.
+
 ## 🎉 What's Now Working
 
 ### 1. **Professional Signup Page** (`/signup`)
+✅ **REAL** Supabase Authentication (Mock removed)
 ✅ Beautiful dark-themed registration form
 ✅ Full Name, Email, Password fields
 ✅ **Role Selection**: Users choose between:
    - 👁️ **Regular User** (Read & Comment)
    - ✍️ **Author** (Write Posts)
-✅ Form validation (password matching, length check)
-✅ Automatic profile creation in database
+✅ **Metadata Sync**: Role and Name are saved to user metadata
+✅ **Profile Creation**: Auto-created via Database Trigger (see above)
 ✅ Role-based redirect after signup
 
 **Screenshot Verified**: Professional UI with gradient branding ✨
@@ -17,6 +26,7 @@
 ---
 
 ### 2. **Professional Login Page** (`/login`)
+✅ **REAL** Supabase Authentication
 ✅ Clean login form with Email & Password
 ✅ "Remember me" checkbox
 ✅ "Forgot password?" link
